@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Learner view</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="/">← Home</a>
+    <span id="who" class="pill grey"></span>
+    <span class="proto-label">Prototype · fictional data</span>
+  </div>
+  <div id="mock-banner" class="mock-banner"></div>
+  <main class="page narrow" id="main"></main>
+
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <h2>Talk to my career coach</h2>
+      <p>This lets your career coach know you'd like to talk. They'll reach out to you. Nothing else changes.</p>
+      <div class="row">
+        <button class="btn primary" id="modal-yes">Yes, let them know</button>
+        <button class="btn" id="modal-no">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/learner.js"></script>
+</body>
+</html>

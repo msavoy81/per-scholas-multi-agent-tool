@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-Agent Support Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="/">Multi-agent support for learners and coaches</a>
+    <span class="proto-label">Prototype · fictional data</span>
+  </div>
+  <div id="mock-banner" class="mock-banner"></div>
+  <main class="page">
+    <h1>Pick a view</h1>
+    <p class="muted">A clickable prototype of AI agents and a human career coach working as a team. Everything here is fictional sample data.</p>
+    <div class="grid three">
+      <div class="card">
+        <h2>Admissions record</h2>
+        <p class="muted">Staff only. Read a learner's interview record and send the welcome that starts their intake.</p>
+        <a class="btn primary" href="/admissions.html">Open admissions</a>
+      </div>
+      <div class="card">
+        <h2>Learner view</h2>
+        <p class="muted">Phone-style. Welcome, intake conversation, book a coach meeting, then chat with the AI coach.</p>
+        <a class="btn primary" href="/learner.html">Open learner view</a>
+      </div>
+      <div class="card">
+        <h2>Coach dashboard</h2>
+        <p class="muted">Learners, flags, meeting briefs, plans to approve, and notes.</p>
+        <a class="btn" href="/coach.html">Open coach dashboard</a>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Demo controls</h3>
+      <p class="muted small">Start over: clears everything created while testing (sessions and the usage log). The sample records are never changed.</p>
+      <button class="btn small" id="reset">Reset demo data</button>
+      <span id="reset-msg" class="muted small"></span>
+    </div>
+  </main>
+  <script src="/app.js"></script>
+  <script>
+    document.getElementById('reset').addEventListener('click', async () => {
+      if (!confirm('Clear all test sessions and the usage log?')) return;
+      await api('/api/demo/reset', 'POST');
+      document.getElementById('reset-msg').textContent = 'Done. Start again from Admissions.';
+    });
+  </script>
+</body>
+</html>

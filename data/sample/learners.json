@@ -1,0 +1,137 @@
+{
+  "_note": "FICTIONAL SAMPLE DATA for a design prototype. No real people. S = sample. Agents may read these records but the code never writes to this file.",
+  "learners": [
+    {
+      "id": "S1",
+      "label": "Learner S1",
+      "shortDescription": "Career changer from retail, childcare limits",
+      "record": {
+        "fictional": true,
+        "interviewDate": "2026-11-03",
+        "track": "IT Support",
+        "background": "Worked eight years in retail, the last three as an assistant store manager. The store is closing at the end of the year. Comfortable with point-of-sale systems and helped coworkers with basic computer problems. No formal tech training.",
+        "backgroundShort": "retail management, helping coworkers with computer problems",
+        "whyNow": "Wants a stable job with room to grow. The store closing made the decision for them. Has been thinking about IT for two years and feels ready.",
+        "whyNowShort": "the store is closing and you want something stable with room to grow",
+        "scheduleConversation": "Can attend mornings and early afternoons. Two days a week needs to leave by 3:00 PM for school pickup. Partner works evenings, so evening study time is hard.",
+        "barriersMentioned": ["childcare"],
+        "interviewerNotes": "Organized and warm. Asked good questions about homework hours. Worried about keeping up when the kids are sick. Would benefit from a clear weekly plan and knowing who to call when a week goes sideways.",
+        "decision": {
+          "status": "Accepted",
+          "decidedBy": "Admissions team member (fictional staff)",
+          "decidedOn": "2026-11-04",
+          "careerCoachJoinedInterview": true
+        }
+      }
+    },
+    {
+      "id": "S2",
+      "label": "Learner S2",
+      "shortDescription": "Recently unemployed, unsure about timing",
+      "record": {
+        "fictional": true,
+        "interviewDate": "2026-11-04",
+        "track": "Cybersecurity",
+        "background": "Laid off six weeks ago from a warehouse logistics role after five years. Handled inventory software and trained new hires on it. Took one online networking course last year and liked it.",
+        "backgroundShort": "warehouse logistics, where you handled inventory software and trained new hires",
+        "whyNow": "Interested in security for a while. Unsure whether to take a job right away for income or commit to training first. Unemployment benefits cover a few more months.",
+        "whyNowShort": "you've been interested in security for a while, though the timing feels uncertain",
+        "scheduleConversation": "Fully available during the day. Shares one car with a family member, so some days will depend on bus schedules.",
+        "barriersMentioned": ["finances", "transportation"],
+        "interviewerNotes": "Thoughtful and capable. Hesitant about committing while income is uncertain. Said twice that they do not want to start and then have to quit. Would help to talk openly about the money question early and to know what support exists.",
+        "decision": {
+          "status": "Accepted",
+          "decidedBy": "Admissions team member (fictional staff)",
+          "decidedOn": "2026-11-05",
+          "careerCoachJoinedInterview": false
+        }
+      }
+    },
+    {
+      "id": "S3",
+      "label": "Learner S3",
+      "shortDescription": "Confident technically, nervous about interviews",
+      "record": {
+        "fictional": true,
+        "interviewDate": "2026-11-05",
+        "track": "Software Engineering",
+        "background": "Self-taught over two years while working as a delivery driver. Built a small scheduling app for a family member's cleaning business. Comfortable with the basics of a programming language and version control.",
+        "backgroundShort": "two years of teaching yourself to code while driving deliveries, including building a scheduling app",
+        "whyNow": "Wants to turn a hobby into a career. Has applied to a few junior roles with no replies and thinks a program with employer connections will help.",
+        "whyNowShort": "you want to turn coding from a hobby into a career and get in front of employers",
+        "scheduleConversation": "Available full time. Keeps a few delivery shifts on weekends for income.",
+        "barriersMentioned": [],
+        "interviewerNotes": "Strong technical answers. Went quiet and spoke very fast when asked to describe the app. Said they hate interviews and freeze up. The main need is practice explaining work out loud and building confidence, not more technical content.",
+        "decision": {
+          "status": "Accepted",
+          "decidedBy": "Admissions team member (fictional staff)",
+          "decidedOn": "2026-11-06",
+          "careerCoachJoinedInterview": true
+        }
+      }
+    },
+    {
+      "id": "S4",
+      "label": "Learner S4",
+      "shortDescription": "Goes quiet in week one (preloaded activity)",
+      "record": {
+        "fictional": true,
+        "interviewDate": "2026-10-27",
+        "track": "IT Support",
+        "background": "Ten years in food service, most recently as a shift lead. Set up the restaurant's tablet ordering system and became the person everyone asked when the wifi went down. Uses an older laptop at home.",
+        "backgroundShort": "food service, where you became the go-to person for the ordering system and wifi",
+        "whyNowShort": "you're ready for work that is less physical and pays better",
+        "whyNow": "Tired of the physical toll of restaurant work and wants better pay. A friend finished a similar program and got hired.",
+        "scheduleConversation": "Keeps two evening shifts a week for income. Daytime is open. Mentioned the laptop is slow and sometimes freezes.",
+        "barriersMentioned": ["technology", "work schedule"],
+        "interviewerNotes": "Enthusiastic and friendly. Very motivated by the friend's success. Did not raise concerns, but the old laptop and the evening shifts could add up. Check in early.",
+        "decision": {
+          "status": "Accepted",
+          "decidedBy": "Admissions team member (fictional staff)",
+          "decidedOn": "2026-10-28",
+          "careerCoachJoinedInterview": false
+        }
+      },
+      "preload": {
+        "_note": "S4 is preloaded as if welcome, intake, and booking happened a week ago, so the watcher has activity to review.",
+        "welcomeDaysAgo": 8,
+        "intake": {
+          "answers": {
+            "confirm": "Yes that's right. Excited to start.",
+            "barriers": "My laptop is pretty old and freezes sometimes. I still work two evening shifts.",
+            "worries": "Just hoping I can keep up. Everyone else probably knows more than me.",
+            "timing": "Yes, now is good.",
+            "support": "Text reminders are good. I'm not big on long calls."
+          },
+          "skipped": [],
+          "profile": {
+            "summary": "Coming from ten years in food service, where they became the go-to person for tech problems. Enrolling for less physical work and better pay, motivated by a friend who finished a similar program.",
+            "barriers": [
+              { "type": "technology", "detail": "Older laptop that freezes sometimes" },
+              { "type": "work schedule", "detail": "Keeps two evening shifts a week" }
+            ],
+            "worries": "Keeping up; feels others may know more.",
+            "timing": "Feels ready to start now.",
+            "supportPreferences": "Short text reminders, not long calls."
+          }
+        },
+        "meeting": { "slot": "Booked before training started (sample slot)", "bookedDaysAgo": 7 },
+        "coachChat": [
+          { "daysAgo": 5, "role": "learner", "feature": "checkin", "text": "Checking in. First day was ok but the lesson moved fast." },
+          { "daysAgo": 5, "role": "agent", "text": "Thanks for checking in. A fast first day is normal. What is one thing from today you want to understand better?" },
+          { "daysAgo": 5, "role": "learner", "text": "The networking part. I'll rewatch it." },
+          { "daysAgo": 4, "role": "learner", "feature": "checkin", "text": "Feeling a bit behind already. My laptop keeps freezing during the video lessons." },
+          { "daysAgo": 4, "role": "agent", "text": "That sounds frustrating, and it is not a sign you can't do this. A freezing laptop is a fixable problem. Would you like me to let your career coach know so they can look at options?" },
+          { "daysAgo": 4, "role": "learner", "text": "Maybe later. I'll try to manage." }
+        ],
+        "activity": [
+          { "daysAgo": 5, "type": "checkin", "detail": "Completed check-in" },
+          { "daysAgo": 4, "type": "checkin", "detail": "Completed check-in" },
+          { "daysAgo": 3, "type": "checkin_missed", "detail": "No check-in" },
+          { "daysAgo": 2, "type": "checkin_missed", "detail": "No check-in" },
+          { "daysAgo": 1, "type": "checkin_missed", "detail": "No check-in" }
+        ]
+      }
+    }
+  ]
+}
