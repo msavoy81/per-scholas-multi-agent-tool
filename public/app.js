@@ -20,7 +20,9 @@ function el(tag, attrs, children) {
     else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
     else node.setAttribute(k, v);
   });
-  (children || []).forEach((c) => node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+  (children || [])
+    .filter((c) => c !== null && c !== undefined && c !== false)
+    .forEach((c) => node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
   return node;
 }
 
@@ -35,9 +37,20 @@ async function showModeBanner() {
   try {
     const s = await api('/api/status');
     if (s.mockMode) {
-      banner.textContent = 'Mock mode is on: no API key set, so the agents use pre-written replies.';
+      banner.textContent = s.forcedMock
+        ? 'Mock mode is on (started with npm run mock): the agents use pre-written replies.'
+        : 'Mock mode is on: no API key set, so the agents use pre-written replies.';
       banner.classList.add('on');
     }
   } catch (e) { /* ignore */ }
 }
 document.addEventListener('DOMContentLoaded', showModeBanner);
+
+function pill(text, kind) {
+  return el('span', { class: 'pill' + (kind ? ' ' + kind : ''), text });
+}
+
+function ago(iso) {
+  const d = Math.floor((Date.now() - Date.parse(iso)) / 864e5);
+  return d <= 0 ? 'today' : d === 1 ? '1 day ago' : d + ' days ago';
+}

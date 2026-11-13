@@ -20,9 +20,16 @@ A human career coach connects with each learner from admissions, before training
 | `lib/intake.js` | The intake question list and the code-built learner profile. |
 | `lib/mock.js` | Pre-written replies for mock mode. |
 | `lib/log.js` | The usage log and its CSV export. |
+| `tests/checks-test.js` | A quick self-test that proves the code checks work (`npm test`). |
 | `data/sample/` | The fictional sample learners. Read only. Committed to git. |
 | `data/sessions/` | Everything created while using the prototype. Ignored by git. |
 | `public/` | The web pages: home, admissions record, learner view, coach dashboard. |
+
+## The screens
+
+- **Admissions record** (staff only): the interview notes, barriers mentioned, the decision and who made it, who the record is shared with, and the **Send welcome** button that starts the learner flow.
+- **Learner view** (phone style): welcome, the intake conversation, booking the first coach meeting, then the AI coach chat with check-ins and practice. The **Talk to my career coach** button is always at the top.
+- **Coach dashboard**: every learner with their status, open flags, and notes. Each learner's page shows what needs attention (flags from the watcher and notes like "asked to talk"), the intake profile with barriers highlighted, the meeting brief, the draft plan to edit and approve, and a notes field for up to three next steps with a **First meeting met** checkbox.
 
 ## How to install and run it
 
@@ -44,12 +51,18 @@ You need **Node.js** (version 20 or newer). Node.js is the program that runs Jav
 4. Open **http://localhost:3000** in your browser. (localhost means "this computer".)
 5. To stop it, press `Ctrl + C` in the terminal.
 
-The first time, the prototype runs in **mock mode** (see below), so you can click through everything without an API key.
+If there is no API key, the prototype runs in **mock mode** (see below), so you can click through everything for free.
 
 ## Mock mode and live mode
 
 - **Mock mode**: no API key is set. Every agent uses realistic pre-written replies. A banner at the top of each page says "Mock mode is on". Good for demos and quick clicks.
-- **Live mode**: an API key is set. The agents call Claude (model `claude-sonnet-5-5`) with the instructions in `charters/`. Replies are real AI responses.
+- **Live mode**: an API key is set. The agents call Claude (model `claude-sonnet-5-5`) with the instructions in `charters/`. Replies are real AI responses, and each one uses a little API credit.
+
+You can force mock mode even when a key is set. This is handy for practice runs that should not use API credit:
+
+```bash
+npm run mock
+```
 
 ### Adding the API key
 
@@ -64,11 +77,16 @@ An API key is a long password that lets the prototype use the Claude AI. Get one
 
 3. Restart the prototype (`Ctrl + C`, then `npm start`). The terminal will say `Mode  LIVE`.
 
-To switch back to mock mode, delete the key from `.env` (or delete the file) and restart. The key is never written into the code, and `.env` is ignored by git, so it will not be published by accident.
+To switch back to mock mode, either start with `npm run mock`, or delete the key from `.env` and restart. The key is never written into the code, and `.env` is ignored by git, so it will not be published by accident.
 
-## Resetting the demo
+## Demo controls and the usage log
 
-On the home page, **Reset demo data** clears `data/sessions/` (test sessions and the usage log). The sample records in `data/sample/` are never changed by the prototype.
+- **Skip ahead one week** (coach dashboard, clearly marked as a demo control): pretends a quiet week has passed. Active learners get three missed check-ins, anyone who has not finished intake or booking gets an "unfinished" note, and then the watcher reviews everyone. Use it to see flags appear during a short test.
+- **Start a new test session** (home page): clears all learner progress so you can start fresh. The usage log is kept, and every entry is tagged with its test session (T1, T2, and so on).
+- **Clear usage log** (home page): deletes the log. Export it first if you need it.
+- **Export usage log to CSV** (coach dashboard): downloads the log as a file that opens in Excel. It records which features learners used, which intake questions they skipped, the meeting slot they picked, coach button clicks, flags created and rejected, and plans drafted, edited, and approved, each with a timestamp.
+
+The sample records in `data/sample/` are never changed by the prototype.
 
 ## Safety basics built in
 
@@ -78,6 +96,16 @@ On the home page, **Reset demo data** clears `data/sessions/` (test sessions and
 - Learner messages are treated as conversation, not instructions.
 - Nothing shows scores, rankings, or admission recommendations.
 - If an agent's reply is empty or broken, a friendly fallback message shows instead.
+- A watcher flag is only shown if its quoted evidence appears word for word in the learner's own messages or activity log, and it has a confidence level and another explanation. Flags that fail are listed separately on the learner's page as "Rejected by the evidence check".
+- A plan stays a draft until the coach clicks **Approve plan**. Agents can draft, but cannot approve or replace an approved plan.
+- Agents get a read-only copy of the admissions record, and the code restores the original before every save, so nothing can change it.
+- Meeting brief resources are always placeholders made by the code, like "Sample childcare resource", so no real organization is ever named.
+
+To see these checks pass, run:
+
+```bash
+npm test
+```
 
 ## Decisions for Per Scholas
 

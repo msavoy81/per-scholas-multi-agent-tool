@@ -130,6 +130,12 @@ function renderCoach() {
   const wrap = el('div', { class: 'chat-wrap' });
   wrap.appendChild(el('button', { class: 'btn block coach-btn', text: 'Talk to my career coach', onclick: () => openModal('coach chat') }));
   wrap.appendChild(el('div', { class: 'chat-notice', text: "I'm an AI coach, not a person. Your career coach may review these conversations." }));
+  if (me.plan) {
+    wrap.appendChild(el('details', { class: 'plan-learner' }, [
+      el('summary', { text: 'My plan · approved by my career coach' }),
+      el('ol', { class: 'tight' }, me.plan.weeks.map((w) => el('li', {}, [el('strong', { text: w.label + ': ' }), w.goal]))),
+    ]));
+  }
   if (me.meeting) wrap.appendChild(el('div', { class: 'bubble system', text: 'First coach meeting: ' + me.meeting.slot }));
 
   const chat = el('div', { class: 'chat', id: 'chat' });

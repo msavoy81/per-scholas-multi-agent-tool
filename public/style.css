@@ -140,3 +140,30 @@ label { font-weight: 600; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+
+/* Coach dashboard */
+.demo { border-style: dashed; border-color: #B7C0C8; background: #FAFBFB; }
+.demo-tag { font-size: .75rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.learner-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.learner-row:hover { border-color: var(--teal); }
+.learner-row h3 { margin: 0; }
+.learner-row p { margin: 0; }
+.flag-card, .note-card { border: 1px solid var(--line); border-left: 4px solid var(--flag-text); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; background: var(--card); }
+.note-card { border-left-color: var(--teal); }
+.note-card.crisis { border-left-color: var(--warn-text); background: var(--warn-bg); }
+.flag-card.low { border-left-color: var(--muted); }
+.flag-card.medium { border-left-color: var(--warn-text); }
+.quote { margin: 8px 0; padding: 8px 12px; background: var(--bg); border-radius: 8px; font-style: italic; }
+.week { margin-bottom: 12px; }
+.week label { display: block; font-size: .9rem; margin-bottom: 4px; }
+.week textarea { width: 100%; font: inherit; font-size: .95rem; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); resize: vertical; }
+.first-ask { background: var(--warn-bg); color: var(--warn-text); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+details { margin-top: 10px; }
+summary { cursor: pointer; font-weight: 600; min-height: 32px; }
+.mini-chat .bubble { font-size: .9rem; max-width: 92%; padding: 8px 12px; }
+.mini-chat { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+ul.tight, ol.tight { margin: 4px 0 10px; padding-left: 20px; }
+ul.tight li, ol.tight li { margin-bottom: 4px; }
+.plan-learner { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; }
+.check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check-row input { width: 22px; height: 22px; accent-color: var(--teal); }

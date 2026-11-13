@@ -1,7 +1,9 @@
 // server.js: a small web server. It serves the pages in public/ and answers
 // the /api/... requests those pages make. No database, no login.
 //
-// Start it with:  npm start   (then open http://localhost:3000)
+// Start it with:  npm start        (live mode if .env has a key)
+//             or:  npm run mock     (always mock mode, no API credit used)
+// Then open http://localhost:3000
 
 const http = require('http');
 const fs = require('fs');
@@ -38,10 +40,12 @@ function readBody(req) {
   });
 }
 
-// The learner never sees the admissions record, flags, brief, or coach notes.
+// The learner never sees the admissions record, flags, brief, or coach notes,
+// and only sees the plan once the coach has approved it.
 function learnerView(l) {
-  const { record, flags, brief, coachNotes, notes, ...rest } = l;
-  return { ...rest, planStatus: l.plan ? l.plan.status : 'none' };
+  const { record, flags, rejectedFlags, brief, coachNotes, notes, plan, ...rest } = l;
+  const approved = plan && plan.status === 'Approved';
+  return { ...rest, planStatus: plan ? plan.status : 'none', plan: approved ? plan : null };
 }
 
 function sampleSlots() {
@@ -61,7 +65,7 @@ function sampleSlots() {
 
 // ---------- status ----------
 route('GET', '/api/status', (req, res) => {
-  sendJson(res, 200, { mockMode: agents.MOCK_MODE, model: agents.MODEL });
+  sendJson(res, 200, { mockMode: agents.MOCK_MODE, forcedMock: agents.FORCED_MOCK, model: agents.MODEL });
 });
 
 // ---------- admissions (staff only) ----------
@@ -96,6 +100,7 @@ route('POST', '/api/admissions/:id/send-welcome', (req, res, params) => {
   const learner = store.createSession(params.id);
   if (!learner) return sendJson(res, 404, { error: 'No such learner' });
   log.logEvent('welcome_sent', { learnerId: learner.id });
+  if (learner.intake.profile && !learner.plan) draftInBackground(learner.id); // S4 arrives with a finished intake
   sendJson(res, 200, { ok: true, status: learner.status });
 });
 
@@ -156,7 +161,7 @@ route('POST', '/api/learners/:id/intake/answer', async (req, res, params) => {
   const crisis = checks.hasCrisisWords(text);
   l.intake.messages.push({ role: 'agent', text: reply, at: new Date().toISOString(), questionId: next ? next.id : null, crisis });
   if (crisis) {
-    l.notes.push({ at: now, type: 'crisis_words', text: 'Crisis words detected during intake. 988 information was shown.' });
+    l.notes.push({ at: now, type: 'crisis_words', text: 'Crisis words came up during intake. 988 information was shown.', open: true });
     log.logEvent('crisis_shown', { learnerId: l.id, detail: 'intake' });
   }
 
@@ -169,6 +174,7 @@ route('POST', '/api/learners/:id/intake/answer', async (req, res, params) => {
     log.logEvent('intake_completed', { learnerId: l.id, detail: `skipped: ${l.intake.skipped.join(' ') || 'none'}` });
   }
   store.saveLearner(l);
+  if (done) draftInBackground(l.id); // plan and prep agent drafts for the coach
   sendJson(res, 200, { messages: l.intake.messages, step: l.intake.step, total: intake.QUESTIONS.length, done, crisis });
 });
 
@@ -204,7 +210,7 @@ route('POST', '/api/learners/:id/chat', async (req, res, params) => {
   l.coachChat.push({ role: 'agent', text: reply, at: new Date().toISOString(), crisis });
   l.activity.push({ type: feature === 'general' ? 'chat_message' : feature, detail: text, at: now });
   if (crisis) {
-    l.notes.push({ at: now, type: 'crisis_words', text: 'Crisis words detected in AI coach chat. 988 information was shown.' });
+    l.notes.push({ at: now, type: 'crisis_words', text: 'Crisis words came up in the AI coach chat. 988 information was shown.', open: true });
     log.logEvent('crisis_shown', { learnerId: l.id, detail: 'coach chat' });
   }
   store.saveLearner(l);
@@ -224,15 +230,260 @@ route('POST', '/api/learners/:id/coach-request', async (req, res, params) => {
   sendJson(res, 200, { ok: true });
 });
 
+// ---------- plan and prep agent ----------
+const drafting = new Set(); // learner ids with a draft in progress
+
+async function generateDraft(id) {
+  const l = store.getLearner(id);
+  if (!l || !l.intake.profile) return { ok: false, reason: 'Intake is not finished yet.' };
+  const current = l.plan ? l.plan.status : 'none';
+  if (!checks.canChangePlanStatus(current, 'Draft', 'agent')) return { ok: false, reason: 'The plan is approved. Reopen it as a draft first.' };
+  const record = store.getRecordForAgents(id); // frozen, read-only copy
+  const out = await agents.planPrep({ record, profile: l.intake.profile, skipped: l.intake.skipped, notes: l.notes });
+  const fresh = store.getLearner(id); // reload: the learner may have chatted meanwhile
+  if (!checks.canChangePlanStatus(fresh.plan ? fresh.plan.status : 'none', 'Draft', 'agent')) return { ok: false, reason: 'The plan was approved meanwhile.' };
+  fresh.plan = out.plan;
+  fresh.brief = out.brief;
+  store.saveLearner(fresh);
+  log.logEvent('plan_drafted', { learnerId: id, detail: out.plan.source });
+  return { ok: true };
+}
+
+function draftInBackground(id) {
+  if (drafting.has(id)) return;
+  drafting.add(id);
+  generateDraft(id)
+    .catch((err) => console.error('[draft]', err))
+    .finally(() => drafting.delete(id));
+}
+
+// ---------- watcher agent ----------
+async function runWatcherFor(id) {
+  const l = store.getLearner(id);
+  if (!l) return { created: 0, rejected: 0 };
+  const proposals = await agents.runWatcher(l);
+  const fresh = store.getLearner(id);
+  fresh.flags = fresh.flags || [];
+  fresh.rejectedFlags = fresh.rejectedFlags || [];
+  const seen = new Set(fresh.flags.concat(fresh.rejectedFlags).map((f) => f.key));
+  let created = 0;
+  let rejected = 0;
+  for (const p of Array.isArray(proposals) ? proposals : []) {
+    const key = p && p.key;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const now = new Date().toISOString();
+    const result = checks.validateFlag(p, fresh); // code check: evidence must match word for word
+    if (result.ok) {
+      const confidence = String(p.confidence).toLowerCase();
+      fresh.flags.push({
+        id: 'F' + Date.now().toString(36) + created,
+        key,
+        createdAt: now,
+        summary: String(p.summary || 'Something to look at').slice(0, 200),
+        evidence: String(p.evidence).trim(),
+        confidence,
+        otherExplanation: String(p.otherExplanation).slice(0, 300),
+        status: 'open',
+      });
+      created++;
+      log.logEvent('flag_created', { learnerId: id, detail: `${confidence}: ${p.summary}` });
+    } else {
+      fresh.rejectedFlags.push({ key, at: now, summary: String(p.summary || ''), evidence: String(p.evidence || ''), reason: result.reason });
+      rejected++;
+      log.logEvent('flag_rejected', { learnerId: id, detail: result.reason });
+    }
+  }
+  store.saveLearner(fresh);
+  log.logEvent('watcher_run', { learnerId: id, detail: `${created} created, ${rejected} rejected` });
+  return { created, rejected };
+}
+
+// ---------- coach dashboard ----------
+route('GET', '/api/coach/learners', (req, res) => {
+  const list = store.listSample().map((s) => {
+    const l = store.getLearner(s.id);
+    return {
+      id: s.id,
+      label: s.label,
+      shortDescription: s.shortDescription,
+      welcomeSent: !!l,
+      status: l ? l.status : 'not started',
+      meeting: l && l.meeting ? l.meeting.slot : null,
+      planStatus: l && l.plan ? l.plan.status : 'none',
+      openFlags: l ? (l.flags || []).filter((f) => f.status === 'open').length : 0,
+      openNotes: l ? l.notes.filter((n) => n.open).length : 0,
+      firstMeetingMet: !!(l && l.coachNotes.firstMeetingMet),
+      demoWeek: l ? l.demoWeek : 0,
+    };
+  });
+  sendJson(res, 200, list);
+});
+
+route('GET', '/api/coach/learners/:id', (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l) return sendJson(res, 404, { error: 'Welcome not sent yet' });
+  sendJson(res, 200, { ...l, drafting: drafting.has(l.id) });
+});
+
+route('POST', '/api/coach/learners/:id/draft', async (req, res, params) => {
+  if (drafting.has(params.id)) return sendJson(res, 409, { error: 'A draft is already being prepared.' });
+  drafting.add(params.id);
+  try {
+    const r = await generateDraft(params.id);
+    if (!r.ok) return sendJson(res, 400, { error: r.reason });
+    sendJson(res, 200, { ok: true });
+  } finally {
+    drafting.delete(params.id);
+  }
+});
+
+function cleanEditedWeeks(body, plan) {
+  if (!Array.isArray(body.weeks)) return null;
+  return plan.weeks.map((w, i) => ({ label: w.label, goal: String((body.weeks[i] && body.weeks[i].goal) || '').trim().slice(0, 400) || w.goal }));
+}
+
+function applyEdits(l, body) {
+  const weeks = cleanEditedWeeks(body, l.plan);
+  if (!weeks) return false;
+  const changed = JSON.stringify(weeks) !== JSON.stringify(l.plan.weeks);
+  if (changed) {
+    l.plan.weeks = weeks;
+    l.plan.editedByCoach = true;
+    l.plan.editedAt = new Date().toISOString();
+    log.logEvent('plan_edited', { learnerId: l.id });
+  }
+  return changed;
+}
+
+route('POST', '/api/coach/learners/:id/plan/save', async (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l || !l.plan) return sendJson(res, 404, { error: 'No plan yet' });
+  if (l.plan.status !== 'Draft') return sendJson(res, 400, { error: 'Reopen the plan as a draft to edit it.' });
+  const changed = applyEdits(l, await readBody(req));
+  store.saveLearner(l);
+  sendJson(res, 200, { ok: true, changed });
+});
+
+route('POST', '/api/coach/learners/:id/plan/approve', async (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l || !l.plan) return sendJson(res, 404, { error: 'No plan yet' });
+  // Code check: only the coach's approve button can move a plan out of Draft.
+  if (!checks.canChangePlanStatus(l.plan.status, 'Approved', 'coach')) return sendJson(res, 400, { error: 'Only a draft plan can be approved.' });
+  applyEdits(l, await readBody(req));
+  l.plan.status = 'Approved';
+  l.plan.approvedAt = new Date().toISOString();
+  store.saveLearner(l);
+  log.logEvent('plan_approved', { learnerId: l.id, detail: l.plan.editedByCoach ? 'with coach edits' : 'as drafted' });
+  sendJson(res, 200, { ok: true });
+});
+
+route('POST', '/api/coach/learners/:id/plan/reopen', (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l || !l.plan) return sendJson(res, 404, { error: 'No plan yet' });
+  if (!checks.canChangePlanStatus(l.plan.status, 'Draft', 'coach')) return sendJson(res, 400, { error: 'Cannot reopen.' });
+  l.plan.status = 'Draft';
+  l.plan.approvedAt = null;
+  store.saveLearner(l);
+  log.logEvent('plan_reopened', { learnerId: l.id });
+  sendJson(res, 200, { ok: true });
+});
+
+const FLAG_DECISIONS = { reach_out: "I'll reach out", watch: 'Keep an eye on it', dismiss: 'Dismissed' };
+route('POST', '/api/coach/learners/:id/flags/:flagId', async (req, res, params) => {
+  const l = store.getLearner(params.id);
+  const flag = l && (l.flags || []).find((f) => f.id === params.flagId);
+  if (!flag) return sendJson(res, 404, { error: 'No such flag' });
+  const body = await readBody(req);
+  if (!FLAG_DECISIONS[body.decision]) return sendJson(res, 400, { error: 'Unknown decision' });
+  flag.status = 'decided';
+  flag.decision = body.decision;
+  flag.decidedAt = new Date().toISOString();
+  store.saveLearner(l);
+  log.logEvent('flag_decided', { learnerId: l.id, detail: `${body.decision}: ${flag.summary}` });
+  sendJson(res, 200, { ok: true });
+});
+
+route('POST', '/api/coach/learners/:id/notes/:index/done', (req, res, params) => {
+  const l = store.getLearner(params.id);
+  const note = l && l.notes[Number(params.index)];
+  if (!note) return sendJson(res, 404, { error: 'No such note' });
+  note.open = false;
+  note.handledAt = new Date().toISOString();
+  store.saveLearner(l);
+  log.logEvent('note_handled', { learnerId: l.id, detail: note.type });
+  sendJson(res, 200, { ok: true });
+});
+
+route('POST', '/api/coach/learners/:id/coach-notes', async (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l) return sendJson(res, 404, { error: 'Welcome not sent yet' });
+  const body = await readBody(req);
+  const steps = [0, 1, 2].map((i) => String((body.nextSteps || [])[i] || '').trim().slice(0, 300));
+  const met = !!body.firstMeetingMet;
+  if (met && !l.coachNotes.firstMeetingMet) log.logEvent('first_meeting_met', { learnerId: l.id });
+  l.coachNotes = { nextSteps: steps, firstMeetingMet: met, savedAt: new Date().toISOString() };
+  store.saveLearner(l);
+  log.logEvent('coach_notes_saved', { learnerId: l.id, detail: `${steps.filter(Boolean).length} next steps` });
+  sendJson(res, 200, { ok: true });
+});
+
+route('POST', '/api/coach/learners/:id/watch', async (req, res, params) => {
+  if (!store.getLearner(params.id)) return sendJson(res, 404, { error: 'Welcome not sent yet' });
+  sendJson(res, 200, await runWatcherFor(params.id));
+});
+
+route('GET', '/api/log.csv', (req, res) => {
+  log.logEvent('log_exported', {});
+  res.writeHead(200, {
+    'Content-Type': 'text/csv; charset=utf-8',
+    'Content-Disposition': 'attachment; filename="usage-log.csv"',
+  });
+  res.end(log.toCsv());
+});
+
 // ---------- demo controls ----------
-route('POST', '/api/demo/reset', (req, res) => {
-  store.resetAll();
-  log.logEvent('demo_reset', {});
+// "Skip ahead one week": moves every learner's timeline back seven days, adds
+// what a quiet week looks like (three missed check-ins for active learners;
+// an unfinished step for everyone else), then runs the watcher.
+route('POST', '/api/demo/skip-week', async (req, res) => {
+  const learners = store.listLearners();
+  let flagsCreated = 0;
+  const daysAgo = (d) => new Date(Date.now() - d * 864e5).toISOString();
+  for (const l of learners) {
+    store.shiftDates(l, -7);
+    l.demoWeek = (l.demoWeek || 0) + 1;
+    if (l.status === 'active') {
+      [6, 4, 2].forEach((d) => l.activity.push({ type: 'checkin_missed', detail: 'No check-in', at: daysAgo(d) }));
+    } else if (l.status === 'booking') {
+      l.activity.push({ type: 'booking_pending', detail: 'First coach meeting not booked a week after intake', at: daysAgo(1) });
+    } else {
+      l.activity.push({ type: 'intake_pending', detail: 'Intake not finished a week after welcome', at: daysAgo(1) });
+    }
+    store.saveLearner(l);
+    flagsCreated += (await runWatcherFor(l.id)).created;
+  }
+  log.logEvent('demo_skip_week', { detail: `${learners.length} learners, ${flagsCreated} new flags` });
+  sendJson(res, 200, { learners: learners.length, flagsCreated });
+});
+
+route('GET', '/api/demo/session', (req, res) => {
+  sendJson(res, 200, store.getMeta());
+});
+
+route('POST', '/api/demo/new-session', (req, res) => {
+  const meta = store.newTestSession();
+  log.logEvent('test_session_started', {});
+  sendJson(res, 200, meta);
+});
+
+route('POST', '/api/demo/clear-log', (req, res) => {
+  log.clearLog();
   sendJson(res, 200, { ok: true });
 });
 
 // ---------- static files ----------
-const TYPES = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'application/javascript', '.svg': 'image/svg+xml', '.png': 'image/png' };
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
@@ -268,6 +519,7 @@ server.listen(PORT, () => {
   console.log('');
   console.log('  Per Scholas Multi-Agent Tool (prototype, fictional data)');
   console.log('  Open  http://localhost:' + PORT);
-  console.log('  Mode  ' + (agents.MOCK_MODE ? 'MOCK (no ANTHROPIC_API_KEY set, pre-written replies)' : 'LIVE (' + agents.MODEL + ')'));
+  const why = agents.FORCED_MOCK ? 'started with npm run mock' : 'no ANTHROPIC_API_KEY set';
+  console.log('  Mode  ' + (agents.MOCK_MODE ? 'MOCK (' + why + ', pre-written replies)' : 'LIVE (' + agents.MODEL + ')'));
   console.log('');
 });

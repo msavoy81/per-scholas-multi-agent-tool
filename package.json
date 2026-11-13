@@ -5,7 +5,9 @@
   "description": "Clickable prototype: multi-agent support for learners and career coaches (Babson FutureLab proposal, fictional data).",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file-if-exists=.env server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "mock": "node server.js --mock",
+    "test": "node tests/checks-test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0"

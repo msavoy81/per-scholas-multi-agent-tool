@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Coach dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="topbar">
     <a class="brand" href="/">← Home</a>
+    <span class="pill grey">Career coach</span>
     <span class="proto-label">Prototype · fictional data</span>
   </div>
   <div id="mock-banner" class="mock-banner"></div>
-  <main class="page">
-    <h1>Coach dashboard</h1>
-    <div class="card"><p>Coming in the next build step: learner list, flags, meeting briefs, plan approval, notes, and CSV export.</p></div>
-  </main>
+  <main class="page" id="main"><p class="muted">Loading…</p></main>
   <script src="/app.js"></script>
+  <script src="/coach.js"></script>
 </body>
 </html>

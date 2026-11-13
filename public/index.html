@@ -34,20 +34,35 @@
         <a class="btn" href="/coach.html">Open coach dashboard</a>
       </div>
     </div>
-    <div class="card">
+    <div class="card demo">
       <h3>Demo controls</h3>
-      <p class="muted small">Start over: clears everything created while testing (sessions and the usage log). The sample records are never changed.</p>
-      <button class="btn small" id="reset">Reset demo data</button>
-      <span id="reset-msg" class="muted small"></span>
+      <p class="muted small">Current test session: <strong id="session">…</strong>. Every usage log entry is tagged with it.</p>
+      <div class="row">
+        <button class="btn small" id="new-session">Start a new test session</button>
+        <button class="btn small" id="clear-log">Clear usage log</button>
+      </div>
+      <p class="muted small" style="margin-top:10px">A new test session clears all learner progress (intake, chats, flags, plans) and keeps the usage log. The sample admissions records are never changed.</p>
+      <p id="reset-msg" class="small"></p>
     </div>
   </main>
   <script src="/app.js"></script>
   <script>
-    document.getElementById('reset').addEventListener('click', async () => {
-      if (!confirm('Clear all test sessions and the usage log?')) return;
-      await api('/api/demo/reset', 'POST');
-      document.getElementById('reset-msg').textContent = 'Done. Start again from Admissions.';
+    async function showSession() {
+      const m = await api('/api/demo/session');
+      document.getElementById('session').textContent = 'T' + m.testSession;
+    }
+    document.getElementById('new-session').addEventListener('click', async () => {
+      if (!confirm('Clear all learner progress and start a new test session? The usage log is kept.')) return;
+      const m = await api('/api/demo/new-session', 'POST');
+      document.getElementById('reset-msg').textContent = 'Started test session T' + m.testSession + '. Begin again from Admissions.';
+      showSession();
     });
+    document.getElementById('clear-log').addEventListener('click', async () => {
+      if (!confirm('Delete the whole usage log? Export it first from the coach dashboard if you need it.')) return;
+      await api('/api/demo/clear-log', 'POST');
+      document.getElementById('reset-msg').textContent = 'Usage log cleared.';
+    });
+    showSession();
   </script>
 </body>
 </html>

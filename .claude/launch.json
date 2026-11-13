@@ -4,7 +4,18 @@
     {
       "name": "prototype",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeArgs": [
+        "start"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "prototype-mock",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "mock"
+      ],
       "port": 3000
     }
   ]
