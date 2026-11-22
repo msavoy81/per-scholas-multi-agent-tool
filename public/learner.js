@@ -90,6 +90,7 @@ function renderIntake() {
   }
   main.appendChild(wrap);
   window.scrollTo(0, document.body.scrollHeight);
+  document.fonts.ready.then(() => window.scrollTo(0, document.body.scrollHeight)); // web font can grow the page after the first scroll
 }
 
 async function answer(text, skip) {
@@ -156,6 +157,7 @@ function renderCoach() {
   wrap.appendChild(el('div', { class: 'composer' }, [ta, send]));
   main.appendChild(wrap);
   window.scrollTo(0, document.body.scrollHeight);
+  document.fonts.ready.then(() => window.scrollTo(0, document.body.scrollHeight)); // web font can grow the page after the first scroll
 }
 
 async function sendChat(text) {

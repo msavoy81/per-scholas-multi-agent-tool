@@ -446,8 +446,14 @@ route('GET', '/api/log.csv', (req, res) => {
 // "Skip ahead one week": moves every learner's timeline back seven days, adds
 // what a quiet week looks like (three missed check-ins for active learners;
 // an unfinished step for everyone else), then runs the watcher.
+// With a learnerId in the body (the guided demo), only that learner moves ahead.
 route('POST', '/api/demo/skip-week', async (req, res) => {
-  const learners = store.listLearners();
+  const body = await readBody(req);
+  let learners = store.listLearners();
+  if (body.learnerId) {
+    learners = learners.filter((l) => l.id === String(body.learnerId));
+    if (!learners.length) return sendJson(res, 404, { error: 'Welcome not sent yet' });
+  }
   let flagsCreated = 0;
   const daysAgo = (d) => new Date(Date.now() - d * 864e5).toISOString();
   for (const l of learners) {

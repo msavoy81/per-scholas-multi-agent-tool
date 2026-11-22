@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guided demo summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <a class="brand" href="/">← Home</a>
+    <span class="pill grey">Guided demo</span>
+    <span class="proto-label">Prototype · fictional data</span>
+  </div>
+  <div id="mock-banner" class="mock-banner"></div>
+  <main class="page" id="main"><p class="muted">Loading…</p></main>
+  <script src="/app.js"></script>
+  <script src="/story.js"></script>
+  <script>
+    // Frame 6 of the guided demo: where the story learner ends up.
+    // Reads the learner from the existing coach route. Changes nothing.
+    const main = document.getElementById('main');
+    const storyId = qs('story');
+
+    function section(title, children) {
+      return el('section', { class: 'card' }, [el('h2', { text: title })].concat(children));
+    }
+
+    function intakeCard(l) {
+      const p = l && l.intake.profile;
+      const kids = [el('p', { class: 'muted small', text: 'As the career coach sees it.' })];
+      if (!p) {
+        kids.push(el('p', { class: 'muted', text: 'The learner has not finished the intake yet.' }));
+        return section('Intake summary', kids);
+      }
+      const barriers = p.barriers && p.barriers.length
+        ? p.barriers.map((b) => el('span', { class: 'barrier', title: b.detail, text: b.type }))
+        : [el('span', { class: 'muted', text: 'None shared' })];
+      kids.push(el('p', { text: p.summary }));
+      kids.push(el('h3', { text: 'Barriers' }));
+      kids.push(el('div', { style: 'margin-bottom: 10px' }, barriers));
+      kids.push(el('dl', { class: 'record' }, [
+        el('dt', { text: 'Worries' }), el('dd', { text: p.worries }),
+        el('dt', { text: 'Timing' }), el('dd', { text: p.timing }),
+        el('dt', { text: 'How they like support' }), el('dd', { text: p.supportPreferences }),
+      ]));
+      return section('Intake summary', kids);
+    }
+
+    function planCard(l) {
+      const plan = l && l.plan;
+      if (!plan) {
+        return section('Plan', [el('p', { class: 'muted', text: l && l.intake.profile
+          ? 'The plan and prep agent is still drafting the plan.'
+          : 'The plan is drafted once the intake is finished.' })]);
+      }
+      const approved = plan.status === 'Approved';
+      return section('Plan', [
+        el('p', {}, [pill(approved ? 'Approved' : 'Draft', approved ? '' : 'warn')]),
+        el('p', { class: 'muted small', text: approved
+          ? 'The career coach approved this plan' + (plan.editedByCoach ? ', with their edits.' : '.')
+          : 'Still a draft. Only the career coach can approve it.' }),
+        el('ol', { class: 'tight' }, plan.weeks.map((w) => el('li', {}, [el('strong', { text: w.label + ': ' }), w.goal]))),
+      ]);
+    }
+
+    function decisionsCard() {
+      return section('Where people made the call', [
+        el('ol', { class: 'tight' }, FRAMES.map((f) => el('li', {}, [
+          el('strong', { text: f.title + ': ' }),
+          f.steps.map((s) => s.who).join(' '),
+        ]))),
+      ]);
+    }
+
+    function endCard() {
+      const other = STORY_LEARNERS.find((s) => s.id !== storyId);
+      const kids = [];
+      if (other) {
+        const btn = el('button', { class: 'btn primary', text: 'See how the same agents support a different learner' });
+        const msg = el('p', { class: 'small', style: 'margin: 8px 0 0' });
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try { await startStory(other.id); } catch (e) { msg.textContent = e.message; btn.disabled = false; }
+        });
+        kids.push(el('p', { class: 'muted small', text: 'Starts a new test session with Learner ' + other.id + ' · ' + other.card + '.' }));
+        kids.push(el('div', { class: 'row' }, [btn, el('a', { class: 'btn', href: '/', text: '← Home' })]));
+        kids.push(msg);
+      } else {
+        kids.push(el('a', { class: 'btn', href: '/', text: '← Home' }));
+      }
+      return el('section', { class: 'card' }, kids);
+    }
+
+    async function showSummary() {
+      const known = STORY_LEARNERS.find((s) => s.id === storyId);
+      if (!known) {
+        main.innerHTML = '';
+        main.appendChild(el('p', { text: 'This page is the end of the guided demo. Start the demo from Home.' }));
+        main.appendChild(el('a', { class: 'btn', href: '/', text: '← Home' }));
+        return;
+      }
+      let l = null;
+      try { l = await api('/api/coach/learners/' + storyId); } catch (e) { /* welcome not sent yet */ }
+      main.innerHTML = '';
+      main.appendChild(el('h1', { text: 'Learner ' + known.id + ' · ' + known.card }));
+      main.appendChild(el('p', { class: 'muted', text: 'Where this learner stands as they head into the job search. Fictional sample data.' }));
+      main.appendChild(el('div', { class: 'grid two' }, [el('div', {}, [intakeCard(l)]), el('div', {}, [planCard(l)])]));
+      main.appendChild(decisionsCard());
+      main.appendChild(endCard());
+    }
+
+    showSummary();
+  </script>
+</body>
+</html>

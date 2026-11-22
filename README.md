@@ -4,6 +4,13 @@ A clickable prototype of **multi-agent support for learners and the career coach
 
 **All learner data in this project is fictional.** The four sample learners (S1 to S4) and their admissions interview records were made up for the prototype. No real names, interview details, or statistics appear anywhere in the code.
 
+## Getting started
+
+1. In a terminal in this folder, run `npm install` once.
+2. Start it with `npm run mock` (free, pre-written replies) or `npm start` (live AI replies, needs an API key).
+3. Open **http://localhost:3000**.
+4. Click a learner under **Start the demo**, then follow **Next** at the top of each screen.
+
 ## The idea in one paragraph
 
 A human career coach connects with each learner from admissions, before training starts. Four AI agents handle the day-to-day: an **intake agent** has a short conversation right after acceptance, a **plan and prep agent** drafts a weekly plan and a meeting brief for the coach, a **learner coach agent** is the learner's AI coach for check-ins and practice, and a **watcher agent** gives the coach a heads up when something looks off. People make admission decisions. The coach approves plans. The AI never contacts anyone on the coach's behalf. Learners can go to the AI or their coach whenever they choose.

@@ -67,7 +67,7 @@ async function showList() {
       l.openNotes ? pill(l.openNotes + ' note' + (l.openNotes > 1 ? 's' : '') + ' to handle', 'warn') : null,
       l.planStatus === 'Draft' ? pill('Plan: draft to review', 'warn') : null,
       l.planStatus === 'Approved' ? pill('Plan approved') : null,
-      l.firstMeetingMet ? pill('First meeting met') : l.meeting ? pill('Meets ' + l.meeting, 'grey') : null,
+      l.firstMeetingMet ? pill('First meeting met') : l.meeting ? pill('First meeting booked', 'grey') : null,
     ];
     main.appendChild(el('a', { class: 'card learner-row', href: l.welcomeSent ? '/coach.html?id=' + l.id : '/admissions.html?id=' + l.id }, [
       el('div', {}, [el('h3', { text: l.label }), el('p', { class: 'muted small', text: l.shortDescription })]),
@@ -263,12 +263,16 @@ function planCard(l) {
     const r = await api(`/api/coach/learners/${l.id}/plan/save`, 'POST', collect());
     msg.textContent = r.changed ? 'Edits saved. The plan is still a draft.' : 'No changes to save.';
   } });
-  const redraft = el('button', { class: 'btn small', text: 'Ask the agent to redraft', onclick: async () => {
-    if (!confirm('Replace this draft with a new one from the plan and prep agent? Your unsaved edits will be lost.')) return;
+  const redraft = el('button', { class: 'btn small', text: 'Ask the agent to redraft' });
+  confirmClick(redraft, 'Replace this draft with a new one from the plan and prep agent? Your unsaved edits will be lost.', async () => {
     redraft.disabled = true;
-    try { await api(`/api/coach/learners/${l.id}/draft`, 'POST'); } catch (e) { alert(e.message); }
+    try { await api(`/api/coach/learners/${l.id}/draft`, 'POST'); } catch (e) {
+      msg.replaceChildren(el('span', { style: 'color: var(--flag-text)', text: e.message }));
+      redraft.disabled = false;
+      return;
+    }
     showDetail();
-  } });
+  });
   return card('Plan', [header, note].concat(weeksEl).concat([el('div', { class: 'row' }, [approve, save, redraft]), msg]));
 }
 

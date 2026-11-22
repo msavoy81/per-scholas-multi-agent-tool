@@ -15,25 +15,34 @@
   </div>
   <div id="mock-banner" class="mock-banner"></div>
   <main class="page">
-    <h1>Pick a view</h1>
-    <p class="muted">A clickable prototype of AI agents and a human career coach working as a team. Everything here is fictional sample data.</p>
-    <div class="grid three">
+    <h1>AI agents and a career coach, working as a team</h1>
+    <p class="muted">This tool shows AI agents and a human career coach working as a team to help learners finish training and get hired. Everything here is fictional sample data.</p>
+
+    <div class="box teal how-to">
+      <h3>How to use this demo</h3>
+      <ol class="tight small">
+        <li>Pick a learner below.</li>
+        <li>Follow the Next button at the top of each screen.</li>
+        <li>Each screen shows who decides at that point.</li>
+      </ol>
+    </div>
+
+    <h2>Start the demo</h2>
+    <div class="grid two" id="story-cards"></div>
+    <p id="story-msg" class="small"></p>
+
+    <div class="jump">
+      <h3>Jump to a view</h3>
+      <p class="muted small">For people who already know the tool.</p>
       <div class="card">
-        <h2>Admissions record</h2>
-        <p class="muted">Staff only. Read a learner's interview record and send the welcome that starts their intake.</p>
-        <a class="btn primary" href="/admissions.html">Open admissions</a>
-      </div>
-      <div class="card">
-        <h2>Learner view</h2>
-        <p class="muted">Phone-style. Welcome, intake conversation, book a coach meeting, then chat with the AI coach.</p>
-        <a class="btn primary" href="/learner.html">Open learner view</a>
-      </div>
-      <div class="card">
-        <h2>Coach dashboard</h2>
-        <p class="muted">Learners, flags, meeting briefs, plans to approve, and notes.</p>
-        <a class="btn" href="/coach.html">Open coach dashboard</a>
+        <ul class="tight small">
+          <li><a href="/admissions.html">Admissions record</a> · Staff only. Read a learner's interview record and send the welcome that starts their intake.</li>
+          <li><a href="/learner.html">Learner view</a> · Phone-style. Welcome, intake conversation, book a coach meeting, then chat with the AI coach.</li>
+          <li><a href="/coach.html">Coach dashboard</a> · Learners, flags, meeting briefs, plans to approve, and notes.</li>
+        </ul>
       </div>
     </div>
+
     <div class="card demo">
       <h3>Demo controls</h3>
       <p class="muted small">Current test session: <strong id="session">…</strong>. Every usage log entry is tagged with it.</p>
@@ -46,22 +55,39 @@
     </div>
   </main>
   <script src="/app.js"></script>
+  <script src="/story.js"></script>
   <script>
     async function showSession() {
       const m = await api('/api/demo/session');
       document.getElementById('session').textContent = 'T' + m.testSession;
     }
-    document.getElementById('new-session').addEventListener('click', async () => {
-      if (!confirm('Clear all learner progress and start a new test session? The usage log is kept.')) return;
+    confirmClick(document.getElementById('new-session'), 'Clear all learner progress and start a new test session? The usage log is kept.', async () => {
       const m = await api('/api/demo/new-session', 'POST');
       document.getElementById('reset-msg').textContent = 'Started test session T' + m.testSession + '. Begin again from Admissions.';
       showSession();
     });
-    document.getElementById('clear-log').addEventListener('click', async () => {
-      if (!confirm('Delete the whole usage log? Export it first from the coach dashboard if you need it.')) return;
+    confirmClick(document.getElementById('clear-log'), 'Delete the whole usage log? Export it first from the coach dashboard if you need it.', async () => {
       await api('/api/demo/clear-log', 'POST');
       document.getElementById('reset-msg').textContent = 'Usage log cleared.';
     });
+
+    // Start the demo: one card per learner in story.js.
+    const storyCards = document.getElementById('story-cards');
+    STORY_LEARNERS.forEach((s) => {
+      const card = el('button', { class: 'card story-card' }, [
+        el('h2', { text: 'Learner ' + s.id + ' · ' + s.card }),
+        el('p', { class: 'muted small', style: 'margin: 0', text: 'Starts a new test session and opens frame 1.' }),
+      ]);
+      card.addEventListener('click', async () => {
+        card.disabled = true;
+        try { await startStory(s.id); } catch (e) {
+          document.getElementById('story-msg').textContent = e.message;
+          card.disabled = false;
+        }
+      });
+      storyCards.appendChild(card);
+    });
+
     showSession();
   </script>
 </body>
