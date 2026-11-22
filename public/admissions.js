@@ -1,8 +1,10 @@
 // admissions.js: shows one learner's interview record and the "Send welcome" button.
 
-let currentId = qs('id') || 'S1';
+const story = storyState(); // guided demo: only the story learner, no tabs
+let currentId = story ? story.learnerId : (qs('id') || 'S1');
 
 async function loadTabs() {
+  if (story) { document.getElementById('tabs').style.display = 'none'; return; }
   const list = await api('/api/admissions');
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = '';
@@ -68,6 +70,7 @@ async function loadRecord() {
     onclick: async () => {
       await api('/api/admissions/' + currentId + '/send-welcome', 'POST');
       loadTabs(); loadRecord();
+      storyRecheck();
     },
   });
   sendButton.disabled = sent;
@@ -82,11 +85,24 @@ async function loadRecord() {
     ]),
   ]);
 
+  // Guided demo: a clear success box instead of "Welcome sent ✓", and no link
+  // out to the learner view (the story bar's Next goes there).
+  const storyWelcomeCard = story && el('div', { class: 'card' }, [
+    el('h3', { text: 'Start the learner flow' }),
+    sent
+      ? el('div', { class: 'box teal story-success' }, [
+        el('strong', { text: '✓ Welcome sent to ' + d.label }),
+        el('p', { class: 'small', text: 'It is on its way to their phone. The admissions record stays as it is. Click Next in the bar above to continue.' }),
+      ])
+      : el('p', { class: 'muted small', text: 'Sends the welcome message that starts the intake conversation. A working copy is created for the learner flow; this record stays as it is.' }),
+    sent ? null : el('div', { class: 'row' }, [sendButton]),
+  ]);
+
   content.innerHTML = '';
   const grid = el('div', { class: 'grid two' }, [decisionCard, sharedCard]);
   content.appendChild(recordCard);
   content.appendChild(grid);
-  content.appendChild(welcomeCard);
+  content.appendChild(storyWelcomeCard || welcomeCard);
 }
 
 loadTabs();

@@ -11,6 +11,8 @@
 //   who       the "Who decides here" line
 //   page      which screen opens: 'admissions', 'learner', 'coach', or 'summary'
 //   skipWeek  (optional) true shows the "Skip ahead one week" button
+//   hint      (optional) shown in the story bar until the step's action is done
+//   done      (optional) shown in the story bar once it is done. {id} becomes the learner id.
 
 const STORY_LEARNERS = [
   { id: 'S2', card: 'New to tech' },
@@ -24,6 +26,8 @@ const FRAMES = [
       caption: "Staff read the learner's admissions interview record and send the welcome.",
       who: 'Staff decided admission. The AI can read this record but never change it.',
       page: 'admissions',
+      hint: 'Send the welcome to continue.',
+      done: 'Welcome sent to Learner {id}. Click Next to see it on their phone.',
     }],
   },
   {
@@ -32,6 +36,7 @@ const FRAMES = [
       caption: "The welcome arrives on the learner's phone.",
       who: 'The learner chooses whether to start.',
       page: 'learner',
+      hint: "Tap Let's start to continue.",
     }],
   },
   {
@@ -41,11 +46,15 @@ const FRAMES = [
         caption: 'The learner has a short intake conversation with the AI, then books their career coach. Every question is optional.',
         who: 'The learner chooses what to share.',
         page: 'learner',
+        hint: 'Finish the intake and book a time to continue.',
+        done: 'Meeting booked. Click Next to see what the career coach sees.',
       },
       {
         caption: 'The career coach reviews the plan the AI drafted from the intake.',
         who: 'The plan stays Draft until the coach approves it.',
         page: 'coach',
+        hint: 'Approve the plan to continue. You can edit it first.',
+        done: 'Plan approved. Click Next to see what happens when a week goes quiet.',
       },
     ],
   },
@@ -56,6 +65,8 @@ const FRAMES = [
       who: 'The coach decides what to do. The watcher never contacts the learner.',
       page: 'coach',
       skipWeek: true,
+      hint: 'Click Skip ahead one week to continue.',
+      done: "Look for the watcher's flag below, then click Next.",
     }],
   },
   {
@@ -64,6 +75,7 @@ const FRAMES = [
       caption: 'Weekly check-ins, project help, mock interviews, and networking practice with the AI coach.',
       who: 'The learner can reach a human any time with Talk to my career coach.',
       page: 'learner',
+      hint: 'Try a message, for example ask for a practice interview question.',
     }],
   },
   {

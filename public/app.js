@@ -126,6 +126,51 @@ function storyNeighbor(s, dir) {
   return storyUrl(s.learnerId, frame, step);
 }
 
+// "3.1" for frame 3 step 1.
+function storyKey(s) {
+  return s.frame + '.' + s.step;
+}
+
+// Has each step's action happened? Checked from existing API routes, keyed by
+// storyKey. Steps not listed here (frames 5 and 6) are always done.
+function storyMe(id) {
+  return api('/api/learners/' + id + '/me');
+}
+const STORY_CHECKS = {
+  '1.1': async (id) => (await api('/api/admissions/' + id)).welcomeSent, // welcome sent
+  '2.1': async (id) => (await storyMe(id)).status !== 'invited', // learner started
+  '3.1': async (id) => (await storyMe(id)).status === 'active', // first meeting booked
+  '3.2': async (id) => (await storyMe(id)).planStatus === 'Approved', // coach approved the plan
+  '4.1': async (id) => ((await storyMe(id)).demoWeek || 0) >= 1, // moved ahead a week
+};
+
+async function storyStepDone(s) {
+  const check = STORY_CHECKS[storyKey(s)];
+  if (!check) return true;
+  try { return !!(await check(s.learnerId)); } catch (e) { return false; } // e.g. welcome not sent yet
+}
+
+let storyBar = null; // the story bar's parts, set by showStoryBar
+
+// Shows the hint (not done) or the success message (done), and turns Next on or off.
+function storyRender(done) {
+  const { s, step, nextBtn, msg, saved } = storyBar;
+  const checked = !!STORY_CHECKS[storyKey(s)];
+  const line = checked && done ? step.done : step.hint;
+  nextBtn.disabled = !done;
+  nextBtn.classList.toggle('ready', checked && done);
+  msg.classList.toggle('success', checked && done);
+  msg.textContent = [saved, line && line.replace(/\{id\}/g, s.learnerId)].filter(Boolean).join(' ');
+}
+
+// Pages call this after they complete a step's action. Does nothing outside the story.
+async function storyRecheck() {
+  if (!storyBar) return;
+  const token = ++storyBar.token; // ignore answers from older checks
+  const done = await storyStepDone(storyBar.s);
+  if (token === storyBar.token) storyRender(done);
+}
+
 function showStoryBar() {
   const s = storyState();
   const topbar = document.querySelector('.topbar');
@@ -137,7 +182,7 @@ function showStoryBar() {
 
   const msg = el('p', { class: 'story-msg' });
   const saved = sessionStorage.getItem('storyMsg');
-  if (saved) { msg.textContent = saved; sessionStorage.removeItem('storyMsg'); }
+  if (saved) sessionStorage.removeItem('storyMsg');
 
   const nav = [];
   if (step.skipWeek) {
@@ -157,7 +202,9 @@ function showStoryBar() {
     nav.push(skip);
   }
   nav.push(el('a', { class: 'btn small', href: back || '/', text: back ? '← Back' : '← Home' }));
-  nav.push(el('a', { class: 'btn small primary', href: next || '/', text: next ? 'Next →' : 'Finish · Home' }));
+  const nextBtn = el('button', { class: 'btn small primary story-next', text: next ? 'Next →' : 'Finish · Home' });
+  nextBtn.addEventListener('click', () => { location.href = next || '/'; });
+  nav.push(nextBtn);
 
   const stepText = frame.steps.length > 1 ? ` (step ${s.step} of ${frame.steps.length})` : '';
   const bar = el('div', { class: 'story-bar' }, [el('div', { class: 'story-bar-inner' }, [
@@ -170,5 +217,9 @@ function showStoryBar() {
     msg,
   ])]);
   topbar.insertAdjacentElement('afterend', bar);
+
+  storyBar = { s, step, nextBtn, msg, saved, token: 0 };
+  storyRender(!STORY_CHECKS[storyKey(s)]); // Next stays off until the check answers
+  storyRecheck();
 }
 document.addEventListener('DOMContentLoaded', showStoryBar);

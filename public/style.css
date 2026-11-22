@@ -183,6 +183,14 @@ ul.tight li, ol.tight li { margin-bottom: 4px; }
 .story-who { color: var(--teal-dark); }
 .story-msg { flex-basis: 100%; margin: 0; font-size: .9rem; color: var(--teal-dark); }
 .story-msg:empty { display: none; }
+.story-msg.success { font-weight: 600; }
+.story-msg.success::before { content: '✓ '; }
+/* Next lights up once the step's action is done */
+.story-next.ready { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--teal); animation: story-pulse 1.6s ease-in-out 3; }
+@keyframes story-pulse { 50% { box-shadow: 0 0 0 3px var(--card), 0 0 0 9px rgba(14, 107, 102, .35); } }
+@media (prefers-reduced-motion: reduce) { .story-next.ready { animation: none; } }
+.story-success { margin-bottom: 12px; }
+.story-success p { margin: 4px 0 0; }
 
 /* Guided demo: home page and summary page */
 .how-to { margin: 16px 0 20px; }

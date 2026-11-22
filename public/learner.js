@@ -2,6 +2,7 @@
 // pick a learner -> welcome -> intake chat -> book a meeting -> AI coach chat
 
 const main = document.getElementById('main');
+const story = storyState(); // guided demo: each step shows its own screen (see loadStory)
 let learnerId = qs('id');
 let me = null;
 let currentFeature = 'general';
@@ -63,6 +64,7 @@ let intakeState = null;
 async function startIntake() {
   main.innerHTML = '<p class="muted">One moment…</p>';
   intakeState = await api('/api/learners/' + learnerId + '/intake/start', 'POST');
+  if (story && storyKey(story) === '2.1') { location.href = storyUrl(story.learnerId, 3, 1); return; } // frame 3 is the intake
   renderIntake();
 }
 
@@ -113,6 +115,7 @@ async function showBooking() {
     ...slots.map((s) => el('button', { class: 'btn block slot', text: s, onclick: async () => {
       await api('/api/learners/' + learnerId + '/book', 'POST', { slot: s });
       load();
+      storyRecheck();
     } })),
   ]));
 }
@@ -184,8 +187,50 @@ document.getElementById('modal-yes').addEventListener('click', async () => {
   window.scrollTo(0, document.body.scrollHeight);
 });
 
+// ---------- Guided demo screens ----------
+function showNotWelcomed() {
+  setWho('');
+  main.innerHTML = '';
+  main.appendChild(el('div', { class: 'card' }, [
+    el('p', { text: "This learner hasn't been welcomed yet. Go back to frame 1 and send the welcome." }),
+    el('a', { class: 'btn primary', href: storyUrl(story.learnerId, 1, 1), text: '← Go to frame 1' }),
+  ]));
+}
+
+// After booking in frame 3, stop here. The AI coach chat is frame 5.
+function showBooked() {
+  main.innerHTML = '';
+  main.appendChild(el('div', { class: 'card' }, [
+    el('h1', { text: "You're booked." }),
+    el('p', { text: 'Your career coach will read your intake before you meet.' }),
+    me.meeting ? el('p', { class: 'muted small', text: 'First coach meeting: ' + me.meeting.slot }) : null,
+  ]));
+}
+
+// In the story, the screen follows the step, not just the learner's status:
+// frame 2 the welcome, frame 3 the intake, booking, or booked card, frame 5 the chat.
+async function loadStory() {
+  learnerId = story.learnerId;
+  try {
+    me = await api('/api/learners/' + learnerId + '/me');
+  } catch (e) {
+    return showNotWelcomed();
+  }
+  setWho(me.label);
+  const key = storyKey(story);
+  if (key === '2.1') return showWelcome();
+  if (key === '3.1') {
+    if (me.status === 'invited') return showWelcome();
+    if (me.status === 'intake') { intakeState = await api('/api/learners/' + learnerId + '/intake/start', 'POST'); return renderIntake(); }
+    if (me.status === 'booking') return showBooking();
+    return showBooked();
+  }
+  return renderCoach();
+}
+
 // ---------- Decide which screen to show ----------
 async function load() {
+  if (story) return loadStory();
   if (!learnerId) return showPicker();
   try {
     me = await api('/api/learners/' + learnerId + '/me');

@@ -2,7 +2,8 @@
 // No ?id= in the address: the list of learners. With ?id=S1: that learner's detail page.
 
 const main = document.getElementById('main');
-const learnerId = qs('id');
+const story = storyState(); // guided demo: straight to the story learner, no list or links out
+const learnerId = story ? story.learnerId : qs('id');
 
 const STATUS_LABEL = {
   'not started': 'Welcome not sent',
@@ -85,11 +86,13 @@ async function showDetail() {
   } catch (e) {
     main.innerHTML = '';
     main.appendChild(el('p', { text: 'This learner has not been sent a welcome yet.' }));
-    main.appendChild(el('a', { class: 'btn', href: '/coach.html', text: '← All learners' }));
+    main.appendChild(story
+      ? el('a', { class: 'btn', href: storyUrl(story.learnerId, 1, 1), text: '← Go to frame 1' })
+      : el('a', { class: 'btn', href: '/coach.html', text: '← All learners' }));
     return;
   }
   main.innerHTML = '';
-  main.appendChild(el('a', { class: 'small', href: '/coach.html', text: '← All learners' }));
+  if (!story) main.appendChild(el('a', { class: 'small', href: '/coach.html', text: '← All learners' }));
   main.appendChild(el('div', { class: 'row', style: 'justify-content: space-between; margin-top: 8px' }, [
     el('h1', { text: l.label + ' · ' + l.shortDescription }),
     pill(STATUS_LABEL[l.status] || l.status),
@@ -198,7 +201,7 @@ function profileCard(l) {
       el('dt', { text: 'Skipped questions' }), el('dd', { text: l.intake.skipped.length ? l.intake.skipped.join(', ') : 'None' }),
       el('dt', { text: 'First meeting' }), el('dd', { text: l.meeting ? l.meeting.slot : 'Not booked yet' }),
     ]),
-    el('a', { class: 'small', href: '/admissions.html?id=' + l.id, text: 'View the admissions interview record (read only) →' }),
+    story ? null : el('a', { class: 'small', href: '/admissions.html?id=' + l.id, text: 'View the admissions interview record (read only) →' }),
   ]);
 }
 
@@ -248,7 +251,7 @@ function planCard(l) {
   if (approved) {
     return card('Plan', [header, note,
       el('ol', { class: 'tight' }, plan.weeks.map((w) => el('li', {}, [el('strong', { text: w.label + ': ' }), w.goal]))),
-      el('button', { class: 'btn small', text: 'Reopen as draft to edit', onclick: async () => { await api(`/api/coach/learners/${l.id}/plan/reopen`, 'POST'); showDetail(); } }),
+      el('button', { class: 'btn small', text: 'Reopen as draft to edit', onclick: async () => { await api(`/api/coach/learners/${l.id}/plan/reopen`, 'POST'); showDetail(); storyRecheck(); } }),
     ]);
   }
 
@@ -258,6 +261,7 @@ function planCard(l) {
   const approve = el('button', { class: 'btn primary', text: 'Approve plan', onclick: async () => {
     await api(`/api/coach/learners/${l.id}/plan/approve`, 'POST', collect());
     showDetail();
+    storyRecheck();
   } });
   const save = el('button', { class: 'btn', text: 'Save edits', onclick: async () => {
     const r = await api(`/api/coach/learners/${l.id}/plan/save`, 'POST', collect());
