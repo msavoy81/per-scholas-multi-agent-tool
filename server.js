@@ -483,6 +483,30 @@ route('POST', '/api/demo/new-session', (req, res) => {
   sendJson(res, 200, meta);
 });
 
+// "Chat as Learner S2" on the home page: sends the welcome, fills in a finished
+// intake (answers from data/demo/intake-answers.json, profile built by code, no
+// AI), and books the first meeting, so the learner opens straight to the chat.
+route('POST', '/api/demo/quick-start/:id', (req, res, params) => {
+  const all = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'demo', 'intake-answers.json'), 'utf8'));
+  if (!Object.prototype.hasOwnProperty.call(all, params.id)) return sendJson(res, 404, { error: 'No quick-start answers for this learner' });
+  const answers = all[params.id];
+  const l = store.createSession(params.id);
+  if (!l) return sendJson(res, 404, { error: 'No such learner' });
+  const now = new Date().toISOString();
+  l.intake.started = true;
+  l.intake.answers = answers;
+  l.intake.step = intake.QUESTIONS.length;
+  l.intake.completedAt = now;
+  l.intake.profile = intake.buildProfile(store.getRecordForAgents(l.id), answers);
+  l.meeting = { slot: sampleSlots()[0], bookedAt: now };
+  l.status = 'active';
+  l.activity.push({ type: 'meeting_booked', detail: l.meeting.slot, at: l.meeting.bookedAt });
+  store.saveLearner(l);
+  log.logEvent('demo_quick_start', { learnerId: l.id });
+  draftInBackground(l.id); // plan and prep agent drafts for the coach; stays Draft
+  sendJson(res, 200, { ok: true });
+});
+
 route('POST', '/api/demo/clear-log', (req, res) => {
   log.clearLog();
   sendJson(res, 200, { ok: true });

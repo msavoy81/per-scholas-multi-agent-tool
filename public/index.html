@@ -16,20 +16,8 @@
   <div id="mock-banner" class="mock-banner"></div>
   <main class="page">
     <h1>AI agents and a career coach, working as a team</h1>
-    <p class="muted">This tool shows AI agents and a human career coach working as a team to help learners finish training and get hired. Everything here is fictional sample data.</p>
-
-    <div class="box teal how-to">
-      <h3>How to use this demo</h3>
-      <ol class="tight small">
-        <li>Pick a learner below.</li>
-        <li>Follow the Next button at the top of each screen.</li>
-        <li>Each screen shows who decides at that point.</li>
-      </ol>
-    </div>
-
-    <h2>Start the demo</h2>
-    <div class="grid two" id="story-cards"></div>
-    <p id="story-msg" class="small"></p>
+    <p class="muted">Pick a learner and chat with their AI coach. Everything here is fictional sample data.</p>
+    <div class="grid two" id="chat-cards"></div>
 
     <div class="jump">
       <h3>Jump to a view</h3>
@@ -71,21 +59,31 @@
       document.getElementById('reset-msg').textContent = 'Usage log cleared.';
     });
 
-    // Start the demo: one card per learner in story.js.
-    const storyCards = document.getElementById('story-cards');
+    // One card per learner in story.js. A click starts a new test session, sets up
+    // the welcome, intake, and booking, then opens that learner's AI coach chat.
+    const chatCards = document.getElementById('chat-cards');
     STORY_LEARNERS.forEach((s) => {
+      const status = el('p', { class: 'small', style: 'margin: 8px 0 0' });
       const card = el('button', { class: 'card story-card' }, [
-        el('h2', { text: 'Learner ' + s.id + ' · ' + s.card }),
-        el('p', { class: 'muted small', style: 'margin: 0', text: 'Starts a new test session and opens frame 1.' }),
+        el('h2', { text: 'Chat as Learner ' + s.id }),
+        el('p', { class: 'muted small', style: 'margin: 0', text: s.card }),
+        status,
       ]);
       card.addEventListener('click', async () => {
         card.disabled = true;
-        try { await startStory(s.id); } catch (e) {
-          document.getElementById('story-msg').textContent = e.message;
+        status.style.color = '';
+        status.textContent = 'Setting up…';
+        try {
+          await api('/api/demo/new-session', 'POST');
+          await api('/api/demo/quick-start/' + s.id, 'POST');
+          location.href = '/learner.html?id=' + s.id;
+        } catch (e) {
+          status.style.color = 'var(--flag-text)';
+          status.textContent = e.message;
           card.disabled = false;
         }
       });
-      storyCards.appendChild(card);
+      chatCards.appendChild(card);
     });
 
     showSession();
