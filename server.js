@@ -223,12 +223,30 @@ route('POST', '/api/learners/:id/coach-request', async (req, res, params) => {
   if (!l) return sendJson(res, 404, { error: 'Welcome not sent yet' });
   const body = await readBody(req);
   const now = new Date().toISOString();
-  l.notes.push({ at: now, type: 'coach_request', text: 'Learner tapped "Talk to my career coach"' + (body.from ? ` (from ${body.from})` : '') + '.', open: true });
+  l.notes.push({ at: now, type: 'coach_request', text: 'Learner tapped "Talk to my career coach"' + (body.from ? ` (from ${body.from})` : '') + '.', open: true, summaryPending: true });
   l.activity.push({ type: 'coach_request', detail: 'Tapped "Talk to my career coach"', at: now });
   store.saveLearner(l);
   log.logEvent('coach_button_clicked', { learnerId: l.id, detail: body.from || '' });
+  writeHandoff(l.id, now).catch((err) => console.error('[handoff]', err.message || err)); // in the background; the learner is not kept waiting
   sendJson(res, 200, { ok: true });
 });
+
+// Handoff summary for a "Talk to my career coach" request, written in the background.
+// The note is found again by its timestamp; the quote is kept only if the learner said it.
+async function writeHandoff(id, at) {
+  const l = store.getLearner(id);
+  if (!l) return;
+  let result = null;
+  try { result = await agents.handoffSummary(l); } catch (err) { console.error('[handoff]', err.message || err); }
+  const fresh = store.getLearner(id);
+  const note = fresh && fresh.notes.find((n) => n.type === 'coach_request' && n.at === at);
+  if (!note) return;
+  note.summaryPending = false;
+  note.summary = String((result && result.summary) || '').slice(0, 600);
+  note.quote = result && checks.learnerSaid(result.quote, fresh) ? String(result.quote).trim() : '';
+  store.saveLearner(fresh);
+  log.logEvent('handoff_summary', { learnerId: id, detail: note.summary ? 'written' : 'empty' });
+}
 
 // ---------- plan and prep agent ----------
 const drafting = new Set(); // learner ids with a draft in progress
@@ -320,10 +338,20 @@ route('GET', '/api/coach/learners', (req, res) => {
   sendJson(res, 200, list);
 });
 
+const watching = new Set(); // learner ids with a watcher review in progress
+
 route('GET', '/api/coach/learners/:id', (req, res, params) => {
   const l = store.getLearner(params.id);
   if (!l) return sendJson(res, 404, { error: 'Welcome not sent yet' });
-  sendJson(res, 200, { ...l, drafting: drafting.has(l.id) });
+  // Watcher on open: if the learner wrote something since the last review, review in the background.
+  // The review time is stamped at the start, so a failed run can never repeat in a loop.
+  if (!watching.has(l.id) && checks.needsWatcherReview(l)) {
+    l.watcherReviewedAt = new Date().toISOString();
+    store.saveLearner(l);
+    watching.add(l.id);
+    runWatcherFor(l.id).catch((err) => console.error('[watcher]', err.message || err)).finally(() => watching.delete(l.id));
+  }
+  sendJson(res, 200, { ...l, drafting: drafting.has(l.id), watching: watching.has(l.id) });
 });
 
 route('POST', '/api/coach/learners/:id/draft', async (req, res, params) => {

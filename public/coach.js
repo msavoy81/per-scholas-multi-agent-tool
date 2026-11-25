@@ -111,7 +111,19 @@ async function showDetail() {
   main.appendChild(el('div', { class: 'grid two' }, [left, right]));
 
   // If the plan and prep agent is still working, check back shortly.
-  if (l.drafting || (l.intake.profile && !l.plan)) setTimeout(showDetail, 1500);
+  if (l.drafting || (l.intake.profile && !l.plan) || l.watching || l.notes.some((n) => n.summaryPending)) setTimeout(showDetail, 1500);
+}
+
+// Handoff summary under a "Talk to my career coach" request: written by AI, quote checked by code.
+function handoffBlock(n) {
+  if (n.type !== 'coach_request') return null;
+  if (n.summaryPending) return el('p', { class: 'muted small', text: 'Writing a handoff summary…' });
+  if (!n.summary) return null;
+  return el('div', { style: 'margin: 8px 0' }, [
+    el('p', { class: 'small', style: 'margin: 0; font-weight: 700; color: var(--teal-dark)', text: 'Handoff summary · written by AI' }),
+    el('p', { style: 'margin: 4px 0' , text: n.summary }),
+    n.quote ? el('p', { class: 'quote', style: 'margin: 0', text: 'In their words: "' + n.quote + '"' }) : null,
+  ]);
 }
 
 // ---------- Needs attention: notes + flags ----------
@@ -124,10 +136,12 @@ function attentionCard(l) {
 
   const children = [];
   if (!openNotes.length && !openFlags.length) children.push(el('p', { class: 'muted', text: 'Nothing needs you right now.' }));
+  if (l.watching) children.push(el('p', { class: 'muted small', text: 'The watcher is reviewing new messages…' }));
 
   openNotes.forEach((n) => children.push(el('div', { class: 'note-card' + (n.type === 'crisis_words' ? ' crisis' : '') }, [
     el('strong', { text: n.type === 'coach_request' ? 'Learner asked to talk to you' : 'Crisis words came up' }),
     el('p', { class: 'small', style: 'margin: 4px 0', text: n.text + ' ' + ago(n.at) + '.' }),
+    handoffBlock(n),
     el('button', { class: 'btn small', text: 'Mark handled', onclick: async () => { await api(`/api/coach/learners/${l.id}/notes/${n.i}/done`, 'POST'); showDetail(); } }),
   ])));
 

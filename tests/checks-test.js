@@ -88,4 +88,20 @@ test('Saved chats become a readable transcript with the evidence label', () => {
   assert.ok(store.formatTranscript({ id: 'S9', coachChat: [] }).includes('(No messages in the AI coach chat.)'));
 });
 
+test('The watcher reviews only when the learner wrote something new', () => {
+  const l = { coachChat: [{ role: 'learner', text: 'hi', at: '2026-11-25T10:00:00Z' }, { role: 'agent', text: 'hello', at: '2026-11-25T10:00:05Z' }] };
+  assert.ok(checks.needsWatcherReview(l), 'never reviewed');
+  assert.ok(!checks.needsWatcherReview({ ...l, watcherReviewedAt: '2026-11-25T10:01:00Z' }), 'nothing new since review');
+  assert.ok(checks.needsWatcherReview({ ...l, watcherReviewedAt: '2026-11-25T09:00:00Z' }), 'new message since review');
+  assert.ok(!checks.needsWatcherReview({ coachChat: [] }), 'no learner messages');
+});
+
+test("A handoff quote must be the learner's own words", () => {
+  const l = { coachChat: [{ role: 'learner', text: 'I am nervous about the first week.' }, { role: 'agent', text: 'That makes sense.' }] };
+  assert.ok(checks.learnerSaid('nervous about the first week', l));
+  assert.ok(!checks.learnerSaid('That makes sense.', l), 'AI words are not the learner words');
+  assert.ok(!checks.learnerSaid('I am worried about week one', l), 'paraphrase fails');
+  assert.ok(!checks.learnerSaid('', l));
+});
+
 if (process.exitCode) console.log('\nSome checks failed.'); else console.log('\nAll code checks passed.');
