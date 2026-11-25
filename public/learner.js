@@ -129,9 +129,34 @@ const FEATURES = [
   { id: 'networking', label: 'Networking practice', starter: "Let's practice a networking conversation." },
 ];
 
+// "Save this chat" demo control. Not part of the real tool.
+const SAVE_TAGS = ['Great conversation', 'Bug', 'Test'];
+
+function saveChatPanel() {
+  const status = el('p', { class: 'muted small', text: '' });
+  const note = el('input', { type: 'text', maxlength: '200', placeholder: 'Optional one-line note' });
+  const tagButtons = SAVE_TAGS.map((t) => el('button', { class: 'btn small', text: t, onclick: async () => {
+    status.textContent = 'Saving…';
+    try {
+      const r = await api('/api/demo/save-chat/' + learnerId, 'POST', { tag: t, note: note.value });
+      status.textContent = 'Saved as "' + t + '": ' + r.name;
+    } catch (e) {
+      status.textContent = 'Not saved: ' + e.message;
+    }
+  } }));
+  return el('details', { class: 'card demo' }, [
+    el('summary', { class: 'demo-tag', text: 'Demo control · Save this chat' }),
+    note,
+    el('p', { class: 'muted small', text: 'Save as:' }),
+    el('div', { class: 'row' }, tagButtons),
+    status,
+  ]);
+}
+
 function renderCoach() {
   main.innerHTML = '';
   const wrap = el('div', { class: 'chat-wrap' });
+  if (me.coachChat.length) wrap.appendChild(saveChatPanel());
   wrap.appendChild(el('button', { class: 'btn block coach-btn', text: 'Talk to my career coach', onclick: () => openModal('coach chat') }));
   wrap.appendChild(el('div', { class: 'chat-notice', text: "I'm an AI coach, not a person. Your career coach may review these conversations." }));
   if (me.plan) {

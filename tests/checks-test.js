@@ -66,4 +66,26 @@ test('Nothing can be written outside data/sessions/', () => {
   assert.throws(() => store.writeJson(target, {}));
 });
 
+test('Saved chats become a readable transcript with the evidence label', () => {
+  const learner = {
+    id: 'S9', label: 'Learner S9',
+    coachChat: [
+      { role: 'learner', text: 'Ask me an interview question.', feature: 'interview' },
+      { role: 'agent', text: 'Tell me about a project you are proud of.' },
+      { role: 'learner', text: 'Thanks, that helped.', feature: 'general' },
+      { role: 'agent', text: 'Glad to hear it.', crisis: true },
+    ],
+  };
+  const t = store.formatTranscript(learner, { testSession: 4, tag: 'Bug', note: 'Too long' });
+  assert.ok(t.split('\n')[0].startsWith('Evidence-informed test conversation'));
+  assert.ok(t.includes('Sample learner: S9 (Learner S9)'));
+  assert.ok(t.includes('Test session: T4') && t.includes('Tag: Bug') && t.includes('Note: Too long'));
+  const a = t.indexOf('Learner [interview]: Ask me an interview question.');
+  const b = t.indexOf('AI coach: Tell me about a project you are proud of.');
+  assert.ok(a > -1 && b > a, 'messages appear in order with speaker labels');
+  assert.ok(t.includes('Learner: Thanks, that helped.'), 'general messages have no feature tag');
+  assert.ok(t.includes('(988 crisis information was shown here.)'));
+  assert.ok(store.formatTranscript({ id: 'S9', coachChat: [] }).includes('(No messages in the AI coach chat.)'));
+});
+
 if (process.exitCode) console.log('\nSome checks failed.'); else console.log('\nAll code checks passed.');

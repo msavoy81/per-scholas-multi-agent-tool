@@ -508,8 +508,21 @@ route('POST', '/api/demo/quick-start/:id', (req, res, params) => {
 });
 
 route('POST', '/api/demo/clear-log', (req, res) => {
+  store.archiveUsageLog(); // copy first; nothing is deleted without a copy
   log.clearLog();
   sendJson(res, 200, { ok: true });
+});
+
+// "Save this chat" demo control on the learner page.
+route('POST', '/api/demo/save-chat/:id', async (req, res, params) => {
+  const l = store.getLearner(params.id);
+  if (!l) return sendJson(res, 404, { error: 'No such learner' });
+  const body = await readBody(req);
+  if (!store.SAVE_TAGS.includes(body.tag)) return sendJson(res, 400, { error: 'Unknown tag' });
+  if (!(l.coachChat || []).length) return sendJson(res, 400, { error: 'Nothing to save yet' });
+  const note = String(body.note || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  const name = store.saveStarredChat(l, body.tag, note);
+  sendJson(res, 200, { ok: true, name });
 });
 
 // ---------- static files ----------
