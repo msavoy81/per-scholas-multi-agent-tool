@@ -127,6 +127,7 @@ const FEATURES = [
   { id: 'project', label: 'Explain a project', starter: "I'd like to practice explaining a project." },
   { id: 'interview', label: 'Mock interview', starter: 'Ask me an interview question.' },
   { id: 'networking', label: 'Networking practice', starter: "Let's practice a networking conversation." },
+  { id: 'general', label: 'Ask a tech question', starter: "I have a question about what I'm learning." },
 ];
 
 // "Save this chat" demo control. Not part of the real tool.
@@ -156,6 +157,7 @@ function saveChatPanel() {
 function renderCoach() {
   main.innerHTML = '';
   const wrap = el('div', { class: 'chat-wrap' });
+  if (!story) wrap.appendChild(sideSwitch(learnerId, 'learner'));
   if (me.coachChat.length) wrap.appendChild(saveChatPanel());
   wrap.appendChild(el('button', { class: 'btn block coach-btn', text: 'Talk to my career coach', onclick: () => openModal('coach chat') }));
   wrap.appendChild(el('div', { class: 'chat-notice', text: "I'm an AI coach, not a person. Your career coach may review these conversations." }));
@@ -170,7 +172,7 @@ function renderCoach() {
   const chat = el('div', { class: 'chat', id: 'chat' });
   if (!me.coachChat.length) {
     chat.appendChild(bubble('agent', "Hi! I'm your AI coach. I'm here any time for a check-in, practice explaining your work, mock interview questions, or networking practice. " +
-      (me.planStatus === 'Approved' ? 'Your plan is approved, so ask me about it any time.' : 'Your plan is being reviewed by your career coach.') + ' Where would you like to start?'));
+      (me.planStatus === 'Approved' ? 'Your plan is approved, so ask me about it any time. ' : '') + 'Where would you like to start?'));
   }
   me.coachChat.forEach((m) => {
     chat.appendChild(bubble(m.role === 'learner' ? 'learner' : 'agent', m.text));

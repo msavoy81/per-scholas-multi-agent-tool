@@ -60,7 +60,7 @@
     });
 
     // One card per learner in story.js. A click starts a new test session, sets up
-    // the welcome, intake, and booking, then opens that learner's AI coach chat.
+    // the welcome, intake, and booking, then opens the coach's view of that learner.
     const chatCards = document.getElementById('chat-cards');
     STORY_LEARNERS.forEach((s) => {
       const status = el('p', { class: 'small', style: 'margin: 8px 0 0' });
@@ -76,7 +76,7 @@
         try {
           await api('/api/demo/new-session', 'POST');
           await api('/api/demo/quick-start/' + s.id, 'POST');
-          location.href = '/learner.html?id=' + s.id;
+          location.href = '/coach.html?id=' + s.id;
         } catch (e) {
           status.style.color = 'var(--flag-text)';
           status.textContent = e.message;

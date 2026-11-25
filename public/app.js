@@ -223,3 +223,14 @@ function showStoryBar() {
   storyRecheck();
 }
 document.addEventListener('DOMContentLoaded', showStoryBar);
+
+// "Learner's chat | Coach's view" switch for the live demo. Same learner on both sides.
+function sideSwitch(id, active) {
+  const tab = (key, label, href) => key === active
+    ? el('span', { class: 'side-tab on', text: label })
+    : el('a', { class: 'side-tab', href, text: label });
+  return el('nav', { class: 'side-switch', 'aria-label': 'Switch view' }, [
+    tab('learner', "Learner's chat", '/learner.html?id=' + encodeURIComponent(id)),
+    tab('coach', "Coach's view", '/coach.html?id=' + encodeURIComponent(id)),
+  ]);
+}

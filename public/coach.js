@@ -92,6 +92,7 @@ async function showDetail() {
     return;
   }
   main.innerHTML = '';
+  if (!story) main.appendChild(sideSwitch(learnerId, 'coach'));
   if (!story) main.appendChild(el('a', { class: 'small', href: '/coach.html', text: '← All learners' }));
   main.appendChild(el('div', { class: 'row', style: 'justify-content: space-between; margin-top: 8px' }, [
     el('h1', { text: l.label + ' · ' + l.shortDescription }),
